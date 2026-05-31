@@ -1,0 +1,57 @@
+{
+  "stage1_model": "mobilenetv3_small_stage1_with_normal.pth",
+  "stage2_model": "yolon11_stage2_with_normal.pt",
+  "classifier_threshold": 0.5,
+  "consecutive_frames_required": 3,
+  "yolo_confidence": 0.45,
+  "yolo_iou": 0.25000000000000006,
+  "buffer_seconds": 5,
+  "max_await_seconds": 5,
+  "post_detection_seconds": 5,
+  "low_res_width": 320,
+  "low_res_height": 240,
+  "alert_cooldown_seconds": 60,
+  "sound_enabled": true,
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 465,
+  "smtp_email": "",
+  "smtp_password": "",
+  "email_recipients": [],
+  "cameras": [
+    {
+      "name": "Test 1",
+      "url": "C:/FA23-BCS-A/DIP/DIP-Project/Application/test.mp4",
+      "loop": true
+    },
+    {
+      "name": "Test 2",
+      "url": "C:/FA23-BCS-A/DIP/DIP-Project/Application/test.mp4",
+      "loop": true
+    },
+    {
+      "name": "Test 3",
+      "url": "C:/FA23-BCS-A/DIP/DIP-Project/Application/test.mp4",
+      "loop": false
+    },
+    {
+      "name": "Test 4",
+      "url": "/Users/arfa/University/Fire-smoke/repo/DIP-Project/Application/test.mp4",
+      "loop": true
+    },
+    {
+      "name": "Test 5",
+      "url": "/Users/arfa/University/Fire-smoke/repo/DIP-Project/Application/test2.mp4",
+      "loop": true
+    },
+    {
+      "name": "Test 6",
+      "url": "/Users/arfa/University/Fire-smoke/repo/DIP-Project/Application/test.mp4",
+      "loop": true
+    }
+  ],
+  "num_classes": 2,
+  "class_names": [
+    "Fire/Smoke",
+    "Normal"
+  ]
+}

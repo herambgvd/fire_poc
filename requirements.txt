@@ -1,0 +1,11 @@
+torch
+torchvision
+ultralytics
+opencv-python
+PyQt6
+psutil
+pygame
+python-dotenv
+requests
+numpy
+Pillow
