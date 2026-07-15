@@ -13,7 +13,14 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from config import LOGS_DIR
-from gui.log_handler import gui_log_handler
+
+# The GUI log handler is only available in the desktop (PyQt) build. In the
+# web/headless build there is no GUI, so import it best-effort and fall back to
+# None — setup_logging() skips it when unavailable.
+try:
+    from gui.log_handler import gui_log_handler
+except Exception:  # PyQt6 not installed / no GUI
+    gui_log_handler = None
 
 
 def setup_logging(level=logging.INFO):
@@ -49,9 +56,10 @@ def setup_logging(level=logging.INFO):
     # ch.setFormatter(fmt)
     # root.addHandler(ch)
 
-    # ── GUI handler (Routes logs to dashboard) ──
-    gui_log_handler.setLevel(level)
-    root.addHandler(gui_log_handler)
+    # ── GUI handler (Routes logs to dashboard) — desktop build only ──
+    if gui_log_handler is not None:
+        gui_log_handler.setLevel(level)
+        root.addHandler(gui_log_handler)
 
 
 class DetectionEventLogger:

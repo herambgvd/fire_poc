@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fire &amp; Smoke Detection — POC</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">🔥</span> Vizor Fire <span class="tag">POC</span></div>
+    <nav class="tabs">
+      <button class="tab" data-view="dashboard">Dashboard</button>
+      <button class="tab active" data-view="live">Live</button>
+      <button class="tab" data-view="events">Events</button>
+      <button class="tab" data-view="settings">Settings</button>
+    </nav>
+    <div class="statuspill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusLabel">—</span></div>
+  </header>
+
+  <main>
+    <!-- LIVE -->
+    <section class="view active" id="view-live">
+      <div class="live-wrap">
+        <div class="live-main">
+          <div class="video-frame">
+            <img id="liveImg" alt="live feed" />
+            <div class="live-badge" id="liveBadge">● LIVE</div>
+          </div>
+          <div class="live-status" id="pipelineStatus">Idle</div>
+        </div>
+        <aside class="live-side">
+          <h3>Camera</h3>
+          <div class="field"><label>RTSP URL</label>
+            <input id="liveRtsp" type="text" placeholder="rtsp://user:pass@ip:554/stream" /></div>
+          <div class="btn-row">
+            <button class="btn primary" id="btnStart">Start monitoring</button>
+            <button class="btn ghost" id="btnStop">Stop</button>
+          </div>
+          <div class="kv"><span>Source</span><b id="kvSource">—</b></div>
+          <div class="kv"><span>Models</span><b id="kvModels">—</b></div>
+          <div class="kv"><span>Camera</span><b id="kvCam">—</b></div>
+          <p class="hint">Local video file bhi de sakte ho (loop hoga). RTSP live chalega.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- EVENTS -->
+    <section class="view" id="view-events">
+      <div class="toolbar">
+        <div class="filters">
+          <select id="fType"><option value="">All types</option><option>Fire</option><option>Smoke</option></select>
+          <input id="fDate" type="date" />
+          <button class="btn ghost" id="btnFilter">Filter</button>
+          <button class="btn ghost" id="btnClear">Clear</button>
+        </div>
+        <a class="btn ghost" href="/api/events/export.csv">⬇ Export CSV</a>
+      </div>
+      <div class="table-wrap">
+        <table class="events">
+          <thead><tr><th>Time</th><th>Type</th><th>Confidence</th><th>Snapshot</th><th>Evidence</th></tr></thead>
+          <tbody id="eventsBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><button class="btn ghost" id="pgPrev">Prev</button>
+        <span id="pgInfo">—</span><button class="btn ghost" id="pgNext">Next</button></div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section class="view" id="view-dashboard">
+      <div class="cards">
+        <div class="card"><div class="card-n" id="dToday">0</div><div class="card-l">Events today</div></div>
+        <div class="card"><div class="card-n" id="dTotal">0</div><div class="card-l">Total events</div></div>
+        <div class="card fire"><div class="card-n" id="dFire">0</div><div class="card-l">Fire</div></div>
+        <div class="card smoke"><div class="card-n" id="dSmoke">0</div><div class="card-l">Smoke</div></div>
+      </div>
+      <div class="panel">
+        <h3>System status</h3>
+        <div class="kv"><span>Monitoring</span><b id="dRunning">—</b></div>
+        <div class="kv"><span>Camera online</span><b id="dCam">—</b></div>
+        <div class="kv"><span>Models loaded</span><b id="dModels">—</b></div>
+        <div class="kv"><span>Pipeline</span><b id="dPipe">—</b></div>
+      </div>
+      <div class="panel">
+        <h3>Last event</h3>
+        <div id="dLast" class="last-event">No events yet.</div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="panel form">
+        <h3>Detection settings</h3>
+        <div class="field"><label>RTSP URL</label><input id="sRtsp" type="text" /></div>
+        <div class="grid2">
+          <div class="field"><label>Stage-1 threshold (0–1)</label><input id="sClsThr" type="number" step="0.05" min="0" max="1" /></div>
+          <div class="field"><label>Consecutive frames</label><input id="sConsec" type="number" step="1" min="1" /></div>
+          <div class="field"><label>Stage-2 confidence (0–1)</label><input id="sYoloConf" type="number" step="0.05" min="0" max="1" /></div>
+          <div class="field"><label>Stage-2 IoU (0–1)</label><input id="sYoloIou" type="number" step="0.05" min="0" max="1" /></div>
+          <div class="field"><label>Alert cooldown (s)</label><input id="sCooldown" type="number" step="1" min="0" /></div>
+          <div class="field"><label>Post-detection record (s)</label><input id="sPost" type="number" step="1" min="1" /></div>
+          <div class="field"><label>Pre-buffer (s)</label><input id="sBuffer" type="number" step="1" min="1" /></div>
+        </div>
+        <div class="btn-row"><button class="btn primary" id="btnSaveSettings">Save settings</button>
+          <span class="save-msg" id="saveMsg"></span></div>
+        <p class="hint">Note: settings change ke baad monitoring Stop → Start karo taaki naye thresholds lag jayein.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- evidence modal -->
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div class="modal-head"><span id="modalTitle">Evidence</span><button class="x" id="modalClose">✕</button></div>
+      <video id="modalVideo" controls></video>
+    </div>
+  </div>
+
+  <audio id="alertAudio" src="/api/alert-sound" preload="auto"></audio>
+  <script src="/app.js"></script>
+</body>
+</html>

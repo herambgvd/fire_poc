@@ -25,7 +25,6 @@ import time
 
 import cv2
 import numpy as np
-from PyQt6.QtCore import QObject, pyqtSignal
 
 from config import settings
 from logging_config import event_logger
@@ -37,12 +36,18 @@ from core.evidence import assemble_evidence
 logger = logging.getLogger(__name__)
 
 
-class PipelineSignals(QObject):
-    """Signals emitted by the pipeline for GUI consumption."""
-    frame_ready = pyqtSignal(str, np.ndarray)          # camera_name, frame
-    status_changed = pyqtSignal(str, str)               # camera_name, status text
-    detection_event = pyqtSignal(dict)                   # full detection info dict
-    alert_triggered = pyqtSignal(str, str, str)          # camera_name, type, evidence_path
+class PipelineCallbacks:
+    """Plain callback holder — the pipeline calls these to report activity.
+
+    Framework-agnostic (no PyQt): the web server assigns real callbacks; each
+    defaults to a no-op so the pipeline runs headless without any consumer wired.
+    """
+
+    def __init__(self):
+        self.on_frame = lambda camera, frame: None    # (camera_name, bgr_frame)
+        self.on_status = lambda camera, text: None     # (camera_name, status_text)
+        self.on_event = lambda info: None              # (detection_info_dict)
+        self.on_alert = lambda camera, dtype, path: None  # (camera_name, type, evidence_path)
 
 
 class CameraPipeline:
@@ -57,7 +62,7 @@ class CameraPipeline:
         self.detector = detector
         self.alert_callback = alert_callback
 
-        self.signals = PipelineSignals()
+        self.callbacks = PipelineCallbacks()
 
         # State
         self._running = False
@@ -116,7 +121,7 @@ class CameraPipeline:
         This runs in the background so it doesn't block the live camera feed.
         """
         try:
-            self.signals.status_changed.emit(
+            self.callbacks.on_status(
                 self.camera_name, "⏳ Processing evidence...")
 
             # Annotate pre-detection buffer frames with Stage 2
@@ -156,7 +161,7 @@ class CameraPipeline:
                 f"({len(annotated_pre)} pre + {len(hi_frames)} post frames)")
 
             # Emit detection event for alert log widget
-            self.signals.detection_event.emit({
+            self.callbacks.on_event({
                 "camera": self.camera_name,
                 "type": det_type,
                 "stage1": s1,
@@ -169,12 +174,12 @@ class CameraPipeline:
             if self.alert_callback:
                 self.alert_callback(self.camera_name, det_type, None, evidence_path)
 
-            self.signals.status_changed.emit(
+            self.callbacks.on_status(
                 self.camera_name, "✅ Evidence saved")
 
         except Exception as e:
             logger.error(f"[{self.camera_name}] Evidence assembly failed: {e}")
-            self.signals.status_changed.emit(
+            self.callbacks.on_status(
                 self.camera_name, f"❌ Evidence error: {e}")
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -271,10 +276,10 @@ class CameraPipeline:
                                 f"recording {post_detect}s of proof")
 
                             # Immediate alert (sound + notification)
-                            self.signals.alert_triggered.emit(
+                            self.callbacks.on_alert(
                                 self.camera_name, det_type, "")
 
-                            self.signals.status_changed.emit(
+                            self.callbacks.on_status(
                                 self.camera_name,
                                 f"🔴 {det_type} DETECTED — Recording proof "
                                 f"({post_detect}s)")
@@ -299,11 +304,11 @@ class CameraPipeline:
                             self._awaiting_confirmation = True
                             self._fire_streak = 0
                             self._smoke_streak = 0
-                            self.signals.status_changed.emit(
+                            self.callbacks.on_status(
                                 self.camera_name,
                                 "✅ Stage 2 did not confirm — Resuming")
                         else:
-                            self.signals.status_changed.emit(
+                            self.callbacks.on_status(
                                 self.camera_name,
                                 f"⚠️ Stage 2 scanning ({remaining:.0f}s)")
 
@@ -317,14 +322,14 @@ class CameraPipeline:
                         if s2["confirmed"]:
                             self._recording_last_s2 = s2
 
-                        self.signals.status_changed.emit(
+                        self.callbacks.on_status(
                             self.camera_name,
                             f"🔴 {self._recording_det_type} — Proof ({remaining:.0f}s)")
 
                         if proof_elapsed >= post_detect:
                             self._finalize_recording()
 
-                    self.signals.frame_ready.emit(self.camera_name, display_frame)
+                    self.callbacks.on_frame(self.camera_name, display_frame)
                     time.sleep(0.01)
                     continue
 
@@ -359,7 +364,7 @@ class CameraPipeline:
                         self._awaiting_confirmation = True
                         self._recording_last_s1 = s1
 
-                        self.signals.status_changed.emit(
+                        self.callbacks.on_status(
                             self.camera_name,
                             "⚠️ Stage 1 Escalated — Stage 2 scanning")
                         logger.warning(
@@ -377,16 +382,16 @@ class CameraPipeline:
                     else:
                         self._fire_streak = 0
                         self._smoke_streak = 0
-                        self.signals.status_changed.emit(
+                        self.callbacks.on_status(
                             self.camera_name, "🟡 Alert cooldown active")
                 else:
                     status = "🟢 Normal"
                     if self._fire_streak > 0 or self._smoke_streak > 0:
                         status = (f"🟡 Monitoring (fire: {self._fire_streak}/"
                                   f"{required}, smoke: {self._smoke_streak}/{required})")
-                    self.signals.status_changed.emit(self.camera_name, status)
+                    self.callbacks.on_status(self.camera_name, status)
 
-                self.signals.frame_ready.emit(self.camera_name, display_frame)
+                self.callbacks.on_frame(self.camera_name, display_frame)
                 
                 # Throttle background thread to max ~30 FPS to prevent overwhelming the GUI event queue
                 # which causes massive memory leaks when dealing with local fast-reading videos.

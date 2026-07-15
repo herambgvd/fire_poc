@@ -55,6 +55,9 @@ DEFAULTS = {
     # Cameras (list of dicts: {"name": "Cam 1", "url": "rtsp://..."} or {"name": "Test", "path": "video.mp4"})
     "cameras": [],
 
+    # Web POC: single RTSP camera URL (or a local video file path for demos)
+    "rtsp_url": "",
+
     # Number of classes (fire/smoke vs normal for this binary model)
     "num_classes": 2,
     "class_names": ["Fire/Smoke", "Normal"],

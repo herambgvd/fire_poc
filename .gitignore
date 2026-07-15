@@ -5,6 +5,7 @@ __pycache__/
 logs/
 alerts/
 evidence/
+data/
 
 *.mp4
 *.avi
