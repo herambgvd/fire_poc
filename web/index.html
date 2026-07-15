@@ -3,19 +3,30 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fire &amp; Smoke Detection — POC</title>
+  <title>Vizor Fire — Detection POC</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="logo">🔥</span> Vizor Fire <span class="tag">POC</span></div>
+    <div class="brand">
+      <svg class="flame" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3-1 4.5-2.5 6C8 9.5 7 11 7 13a5 5 0 0 0 10 0c0-1.7-.7-3-1.6-4.2-.3 1-1 1.7-1.9 1.7 1-2.2-.2-4.6-1.5-6.5-.3-.4-.6-.8-1-1.5z"/></svg>
+      Vizor Fire <span class="tag">POC</span>
+    </div>
     <nav class="tabs">
-      <button class="tab" data-view="dashboard">Dashboard</button>
-      <button class="tab active" data-view="live">Live</button>
-      <button class="tab" data-view="events">Events</button>
-      <button class="tab" data-view="settings">Settings</button>
+      <button class="tab" data-view="dashboard" aria-label="Dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span>
+      </button>
+      <button class="tab active" data-view="live" aria-label="Live">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg><span>Live</span>
+      </button>
+      <button class="tab" data-view="events" aria-label="Events">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Events</span>
+      </button>
+      <button class="tab" data-view="settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span>
+      </button>
     </nav>
-    <div class="statuspill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusLabel">—</span></div>
+    <div class="statuspill"><span class="dot" id="statusDot"></span><span id="statusLabel">—</span></div>
   </header>
 
   <main>
@@ -24,23 +35,26 @@
       <div class="live-wrap">
         <div class="live-main">
           <div class="video-frame">
-            <img id="liveImg" alt="live feed" />
-            <div class="live-badge" id="liveBadge">● LIVE</div>
+            <img id="liveImg" alt="Live camera feed with fire/smoke detection overlay" />
+            <div class="live-badge" id="liveBadge"><span class="rec"></span>LIVE</div>
           </div>
-          <div class="live-status" id="pipelineStatus">Idle</div>
+          <div class="live-status"><span class="sdot" id="statusSdot"></span><span id="pipelineStatus">Idle</span></div>
         </div>
         <aside class="live-side">
           <h3>Camera</h3>
-          <div class="field"><label>RTSP URL</label>
+          <div class="field"><label for="liveRtsp">RTSP URL</label>
             <input id="liveRtsp" type="text" placeholder="rtsp://user:pass@ip:554/stream" /></div>
           <div class="btn-row">
-            <button class="btn primary" id="btnStart">Start monitoring</button>
-            <button class="btn ghost" id="btnStop">Stop</button>
+            <button class="btn primary" id="btnStart">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Start monitoring</button>
+            <button class="btn" id="btnStop">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>
           </div>
-          <div class="kv"><span>Source</span><b id="kvSource">—</b></div>
-          <div class="kv"><span>Models</span><b id="kvModels">—</b></div>
-          <div class="kv"><span>Camera</span><b id="kvCam">—</b></div>
-          <p class="hint">Local video file bhi de sakte ho (loop hoga). RTSP live chalega.</p>
+          <div class="divider"></div>
+          <div class="kv"><span>Source</span><b class="src" id="kvSource">—</b></div>
+          <div class="kv"><span>Models</span><b id="kvModels" class="mut">—</b></div>
+          <div class="kv"><span>Camera</span><b id="kvCam" class="mut">—</b></div>
+          <p class="hint">Local video file bhi de sakte ho (loop hoga) — RTSP live chalega. Bounding boxes server-side draw hote hain.</p>
         </aside>
       </div>
     </section>
@@ -51,10 +65,11 @@
         <div class="filters">
           <select id="fType"><option value="">All types</option><option>Fire</option><option>Smoke</option></select>
           <input id="fDate" type="date" />
-          <button class="btn ghost" id="btnFilter">Filter</button>
-          <button class="btn ghost" id="btnClear">Clear</button>
+          <button class="btn" id="btnFilter">Filter</button>
+          <button class="btn" id="btnClear">Clear</button>
         </div>
-        <a class="btn ghost" href="/api/events/export.csv">⬇ Export CSV</a>
+        <a class="btn" href="/api/events/export.csv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</a>
       </div>
       <div class="table-wrap">
         <table class="events">
@@ -62,28 +77,38 @@
           <tbody id="eventsBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
         </table>
       </div>
-      <div class="pager"><button class="btn ghost" id="pgPrev">Prev</button>
-        <span id="pgInfo">—</span><button class="btn ghost" id="pgNext">Next</button></div>
+      <div class="pager"><button class="btn" id="pgPrev">Prev</button>
+        <span id="pgInfo" class="mono">—</span><button class="btn" id="pgNext">Next</button></div>
     </section>
 
     <!-- DASHBOARD -->
     <section class="view" id="view-dashboard">
       <div class="cards">
-        <div class="card"><div class="card-n" id="dToday">0</div><div class="card-l">Events today</div></div>
-        <div class="card"><div class="card-n" id="dTotal">0</div><div class="card-l">Total events</div></div>
-        <div class="card fire"><div class="card-n" id="dFire">0</div><div class="card-l">Fire</div></div>
-        <div class="card smoke"><div class="card-n" id="dSmoke">0</div><div class="card-l">Smoke</div></div>
+        <div class="card accent"><div class="card-top">Events today
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <div class="card-n mono" id="dToday">0</div><div class="card-l">last 24h (UTC)</div></div>
+        <div class="card"><div class="card-top">Total events
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="14" y="6" width="3" height="12"/></svg></div>
+          <div class="card-n mono" id="dTotal">0</div><div class="card-l">all time</div></div>
+        <div class="card fire"><div class="card-top">Fire
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3-1 4.5-2.5 6C8 9.5 7 11 7 13a5 5 0 0 0 10 0c0-1.7-.7-3-1.6-4.2-.3 1-1 1.7-1.9 1.7 1-2.2-.2-4.6-1.5-6.5-.3-.4-.6-.8-1-1.5z"/></svg></div>
+          <div class="card-n mono" id="dFire">0</div><div class="card-l">confirmed</div></div>
+        <div class="card smoke"><div class="card-top">Smoke
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 15h11a3 3 0 1 0-3-3M4 19h9a3 3 0 1 1-3 3"/></svg></div>
+          <div class="card-n mono" id="dSmoke">0</div><div class="card-l">confirmed</div></div>
       </div>
-      <div class="panel">
-        <h3>System status</h3>
-        <div class="kv"><span>Monitoring</span><b id="dRunning">—</b></div>
-        <div class="kv"><span>Camera online</span><b id="dCam">—</b></div>
-        <div class="kv"><span>Models loaded</span><b id="dModels">—</b></div>
-        <div class="kv"><span>Pipeline</span><b id="dPipe">—</b></div>
-      </div>
-      <div class="panel">
-        <h3>Last event</h3>
-        <div id="dLast" class="last-event">No events yet.</div>
+      <div class="grid-2">
+        <div class="panel">
+          <h3>System status</h3>
+          <div class="kv"><span>Monitoring</span><b id="dRunning" class="mut">—</b></div>
+          <div class="kv"><span>Camera online</span><b id="dCam" class="mut">—</b></div>
+          <div class="kv"><span>Models loaded</span><b id="dModels" class="mut">—</b></div>
+          <div class="kv"><span>Pipeline</span><b id="dPipe" class="mut">—</b></div>
+        </div>
+        <div class="panel">
+          <h3>Last event</h3>
+          <div id="dLast" class="last-event">No events yet.</div>
+        </div>
       </div>
     </section>
 
@@ -91,19 +116,19 @@
     <section class="view" id="view-settings">
       <div class="panel form">
         <h3>Detection settings</h3>
-        <div class="field"><label>RTSP URL</label><input id="sRtsp" type="text" /></div>
+        <div class="field"><label for="sRtsp">RTSP URL</label><input id="sRtsp" type="text" /></div>
         <div class="grid2">
-          <div class="field"><label>Stage-1 threshold (0–1)</label><input id="sClsThr" type="number" step="0.05" min="0" max="1" /></div>
-          <div class="field"><label>Consecutive frames</label><input id="sConsec" type="number" step="1" min="1" /></div>
-          <div class="field"><label>Stage-2 confidence (0–1)</label><input id="sYoloConf" type="number" step="0.05" min="0" max="1" /></div>
-          <div class="field"><label>Stage-2 IoU (0–1)</label><input id="sYoloIou" type="number" step="0.05" min="0" max="1" /></div>
-          <div class="field"><label>Alert cooldown (s)</label><input id="sCooldown" type="number" step="1" min="0" /></div>
-          <div class="field"><label>Post-detection record (s)</label><input id="sPost" type="number" step="1" min="1" /></div>
-          <div class="field"><label>Pre-buffer (s)</label><input id="sBuffer" type="number" step="1" min="1" /></div>
+          <div class="field"><label for="sClsThr">Stage-1 threshold (0–1)</label><input id="sClsThr" type="number" step="0.05" min="0" max="1" /></div>
+          <div class="field"><label for="sConsec">Consecutive frames</label><input id="sConsec" type="number" step="1" min="1" /></div>
+          <div class="field"><label for="sYoloConf">Stage-2 confidence (0–1)</label><input id="sYoloConf" type="number" step="0.05" min="0" max="1" /></div>
+          <div class="field"><label for="sYoloIou">Stage-2 IoU (0–1)</label><input id="sYoloIou" type="number" step="0.05" min="0" max="1" /></div>
+          <div class="field"><label for="sCooldown">Alert cooldown (s)</label><input id="sCooldown" type="number" step="1" min="0" /></div>
+          <div class="field"><label for="sPost">Post-detection record (s)</label><input id="sPost" type="number" step="1" min="1" /></div>
+          <div class="field"><label for="sBuffer">Pre-buffer (s)</label><input id="sBuffer" type="number" step="1" min="1" /></div>
         </div>
-        <div class="btn-row"><button class="btn primary" id="btnSaveSettings">Save settings</button>
+        <div class="save-row"><button class="btn primary" id="btnSaveSettings">Save settings</button>
           <span class="save-msg" id="saveMsg"></span></div>
-        <p class="hint">Note: settings change ke baad monitoring Stop → Start karo taaki naye thresholds lag jayein.</p>
+        <p class="hint">Settings change ke baad monitoring <b>Stop → Start</b> karo taaki naye thresholds lagein.</p>
       </div>
     </section>
   </main>
@@ -111,7 +136,7 @@
   <!-- evidence modal -->
   <div class="modal" id="modal">
     <div class="modal-box">
-      <div class="modal-head"><span id="modalTitle">Evidence</span><button class="x" id="modalClose">✕</button></div>
+      <div class="modal-head"><span id="modalTitle">Evidence</span><button class="x" id="modalClose" aria-label="Close">✕</button></div>
       <video id="modalVideo" controls></video>
     </div>
   </div>

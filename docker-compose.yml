@@ -9,6 +9,7 @@ services:
     volumes:
       - fire_data:/app/data          # events DB + snapshots
       - fire_evidence:/app/evidence  # evidence .mp4 clips
+      - ./web:/app/web:ro            # static SPA (live-editable, no rebuild needed)
     # For a LOCAL demo video, uncomment and use /app/demo.mp4 as the "RTSP URL":
     # volumes:
     #   - ./demo.mp4:/app/demo.mp4:ro

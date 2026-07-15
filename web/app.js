@@ -41,6 +41,11 @@ $("btnStop").addEventListener("click", async () => {
 
 // ── status polling ───────────────────────────────────────────────────────────
 let lastEventId = null;
+const setKv = (id, ok, yes, no) => {
+  const el = $(id);
+  el.textContent = ok ? yes : no;
+  el.className = ok ? "good" : "bad";
+};
 async function refreshStatus() {
   try {
     const s = await api("/api/status");
@@ -48,10 +53,13 @@ async function refreshStatus() {
     $("statusDot").className = "dot " + (running ? "on" : "off");
     $("statusLabel").textContent = running ? "Monitoring" : "Stopped";
     $("pipelineStatus").textContent = s.status_text || (running ? "Running" : "Idle");
-    $("liveBadge").style.display = running ? "block" : "none";
+    $("statusSdot").style.background = running
+      ? (s.camera_online ? "var(--ok)" : "var(--warn)") : "var(--faint)";
+    $("liveBadge").style.display = running ? "flex" : "none";
     $("kvSource").textContent = s.source || "—";
-    $("kvModels").textContent = s.models_loaded ? "loaded" : "not loaded";
-    $("kvCam").textContent = s.camera_online ? "online" : "offline";
+    $("kvSource").className = s.source ? "src" : "src mut";
+    setKv("kvModels", s.models_loaded, "loaded", "not loaded");
+    setKv("kvCam", s.camera_online, "online", "offline");
   } catch (e) { /* ignore transient */ }
 }
 
@@ -98,18 +106,19 @@ async function loadEvents() {
 function fmtTime(iso) {
   try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
 }
+const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
 function rowHtml(e) {
   const conf = e.confidence != null ? (e.confidence * 100).toFixed(0) + "%" : "—";
   const thumb = e.has_snapshot
-    ? `<img class="thumb" src="/api/events/${e.id}/snapshot" data-ev="${e.id}" data-type="${e.type}" alt="snap"/>`
-    : "—";
+    ? `<img class="thumb" src="/api/events/${e.id}/snapshot" data-ev="${e.id}" data-type="${e.type}" alt="detection snapshot"/>`
+    : '<span class="mut">—</span>';
   const evi = e.has_evidence
-    ? `<button class="btn ghost" data-ev="${e.id}" data-type="${e.type}">▶ View</button>`
-    : "—";
+    ? `<button class="link-btn" data-ev="${e.id}" data-type="${e.type}">${PLAY_SVG}View clip</button>`
+    : '<span class="mut">—</span>';
   return `<tr>
-    <td>${fmtTime(e.ts)}</td>
+    <td class="time">${fmtTime(e.ts)}</td>
     <td><span class="badge ${e.type}">${e.type}</span></td>
-    <td>${conf}</td>
+    <td class="conf">${conf}</td>
     <td>${thumb}</td>
     <td>${evi}</td></tr>`;
 }
@@ -140,12 +149,13 @@ async function loadDashboard() {
   $("dTotal").textContent = c.total;
   $("dFire").textContent = c.fire;
   $("dSmoke").textContent = c.smoke;
-  $("dRunning").textContent = s.running ? "Yes" : "No";
-  $("dCam").textContent = s.camera_online ? "Yes" : "No";
-  $("dModels").textContent = s.models_loaded ? "Yes" : "No";
+  setKv("dRunning", s.running, "Yes", "No");
+  setKv("dCam", s.camera_online, "Yes", "No");
+  setKv("dModels", s.models_loaded, "Yes", "No");
   $("dPipe").textContent = s.status_text || "—";
+  $("dPipe").className = "";
   $("dLast").innerHTML = c.last_event
-    ? `<span class="badge ${c.last_event.type}">${c.last_event.type}</span> ${fmtTime(c.last_event.ts)}`
+    ? `<span class="badge ${c.last_event.type}">${c.last_event.type}</span> <span class="mono">${fmtTime(c.last_event.ts)}</span>`
     : "No events yet.";
 }
 
@@ -172,10 +182,10 @@ $("btnSaveSettings").addEventListener("click", async () => {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    $("saveMsg").textContent = "Saved ✓";
+    $("saveMsg").textContent = "Saved ✓"; $("saveMsg").className = "save-msg";
     setTimeout(() => ($("saveMsg").textContent = ""), 2500);
     if (body.rtsp_url) $("liveRtsp").value = body.rtsp_url;
-  } catch (e) { $("saveMsg").textContent = "Error: " + e.message; }
+  } catch (e) { $("saveMsg").textContent = "Error: " + e.message; $("saveMsg").className = "save-msg err"; }
 });
 
 // ── boot ─────────────────────────────────────────────────────────────────────
