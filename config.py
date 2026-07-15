@@ -34,6 +34,12 @@ DEFAULTS = {
     "yolo_confidence": 0.5,
     "yolo_iou": 0.45,
 
+    # Live annotation: continuously draw Stage-2 boxes on the live view (web POC)
+    # even in normal mode, so the browser always shows detections. Throttled:
+    # run Stage-2 every Nth frame for display (event/cooldown logic is unaffected).
+    "live_annotate": True,
+    "live_annotate_every": 2,
+
     # Buffering & Evidence Timing
     "buffer_seconds": 15,
     "max_await_seconds": 10,

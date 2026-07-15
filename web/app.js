@@ -95,6 +95,8 @@ async function loadEvents() {
     body.innerHTML = `<tr><td colspan="5" class="empty">No events${f.type || f.date ? " for this filter" : " yet"}.</td></tr>`;
   } else {
     body.innerHTML = data.items.map(rowHtml).join("");
+    body.querySelectorAll("[data-snap]").forEach((el) =>
+      el.addEventListener("click", () => openSnapshot(el.dataset.snap, el.dataset.type)));
     body.querySelectorAll("[data-ev]").forEach((el) =>
       el.addEventListener("click", () => openEvidence(el.dataset.ev, el.dataset.type)));
   }
@@ -110,7 +112,7 @@ const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true
 function rowHtml(e) {
   const conf = e.confidence != null ? (e.confidence * 100).toFixed(0) + "%" : "—";
   const thumb = e.has_snapshot
-    ? `<img class="thumb" src="/api/events/${e.id}/snapshot" data-ev="${e.id}" data-type="${e.type}" alt="detection snapshot"/>`
+    ? `<img class="thumb" src="/api/events/${e.id}/snapshot" data-snap="${e.id}" data-type="${e.type}" alt="detection snapshot" title="Click to enlarge"/>`
     : '<span class="mut">—</span>';
   const evi = e.has_evidence
     ? `<button class="link-btn" data-ev="${e.id}" data-type="${e.type}">${PLAY_SVG}View clip</button>`
@@ -129,8 +131,15 @@ $("pgNext").addEventListener("click", () => { page++; loadEvents(); });
 
 // ── evidence modal ───────────────────────────────────────────────────────────
 function openEvidence(id, type) {
-  $("modalTitle").textContent = `Evidence — ${type} (event #${id})`;
-  $("modalVideo").src = `/api/events/${id}/evidence`;
+  $("modalTitle").textContent = `Evidence clip — ${type} (event #${id})`;
+  const img = $("modalImg"); img.style.display = "none"; img.src = "";
+  const v = $("modalVideo"); v.style.display = "block"; v.src = `/api/events/${id}/evidence`;
+  $("modal").classList.add("open");
+}
+function openSnapshot(id, type) {
+  $("modalTitle").textContent = `Snapshot — ${type} (event #${id})`;
+  const v = $("modalVideo"); v.pause(); v.src = ""; v.style.display = "none";
+  const img = $("modalImg"); img.src = `/api/events/${id}/snapshot`; img.style.display = "block";
   $("modal").classList.add("open");
 }
 $("modalClose").addEventListener("click", closeModal);
@@ -138,6 +147,7 @@ $("modal").addEventListener("click", (e) => { if (e.target.id === "modal") close
 function closeModal() {
   $("modal").classList.remove("open");
   const v = $("modalVideo"); v.pause(); v.src = "";
+  $("modalImg").src = "";
 }
 
 // ── dashboard ────────────────────────────────────────────────────────────────

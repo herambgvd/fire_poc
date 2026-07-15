@@ -7,6 +7,8 @@ already have Stage 2 bounding box annotations where applicable.
 """
 
 import logging
+import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -16,6 +18,26 @@ import numpy as np
 from config import EVIDENCE_DIR
 
 logger = logging.getLogger(__name__)
+
+
+def _transcode_h264(src: str, dst: str) -> bool:
+    """Re-encode ``src`` to browser-playable H.264 MP4 (faststart) at ``dst``.
+
+    OpenCV's VideoWriter emits MPEG-4 Part 2 (mp4v/mpeg4), which browsers can't
+    play. ffmpeg (bundled in the image) converts it to H.264/yuv420p so the clip
+    plays in the Events UI. Returns True on success.
+    """
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", src,
+             "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+             "-movflags", "+faststart", dst],
+            check=True, capture_output=True,
+        )
+        return os.path.isfile(dst) and os.path.getsize(dst) > 0
+    except Exception as exc:  # ffmpeg missing / encode failed
+        logger.warning("H.264 transcode failed (%s); keeping mp4v fallback", exc)
+        return False
 
 
 def assemble_evidence(pre_frames: list, post_frames: list,
@@ -45,13 +67,14 @@ def assemble_evidence(pre_frames: list, post_frames: list,
     safe_cam = camera_name.replace(" ", "_").replace("/", "_")
     filename = f"{timestamp}_{safe_cam}_{detection_type}.mp4"
     filepath = EVIDENCE_DIR / filename
+    raw_path = EVIDENCE_DIR / f".raw_{filename}"   # mp4v scratch, transcoded below
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(filepath), fourcc, fps,
+    writer = cv2.VideoWriter(str(raw_path), fourcc, fps,
                              output_size)
 
     if not writer.isOpened():
-        logger.error(f"Failed to create video writer: {filepath}")
+        logger.error(f"Failed to create video writer: {raw_path}")
         return None
 
     frame_count = 0
@@ -76,6 +99,16 @@ def assemble_evidence(pre_frames: list, post_frames: list,
             frame_count += 1
 
     writer.release()
+
+    # Transcode to browser-playable H.264; fall back to the raw mp4v on failure.
+    if _transcode_h264(str(raw_path), str(filepath)):
+        try:
+            os.remove(raw_path)
+        except OSError:
+            pass
+    else:
+        os.replace(raw_path, filepath)
+
     logger.info(f"Evidence saved: {filepath} ({frame_count} frames, "
                 f"{frame_count / fps:.1f}s)")
     return str(filepath)

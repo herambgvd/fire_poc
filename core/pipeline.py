@@ -93,6 +93,10 @@ class CameraPipeline:
         # Lock to prevent concurrent Stage 2 usage
         self._detector_lock = threading.Lock()
 
+        # Live-annotation state (web POC): show Stage-2 boxes continuously.
+        self._frame_i = 0
+        self._last_live_annot = None
+
     # ──────────────────────────────────────────────────────────────────────────
     def set_source(self, source):
         self._source = source
@@ -390,6 +394,24 @@ class CameraPipeline:
                         status = (f"🟡 Monitoring (fire: {self._fire_streak}/"
                                   f"{required}, smoke: {self._smoke_streak}/{required})")
                     self.callbacks.on_status(self.camera_name, status)
+
+                # ── Live annotation ──────────────────────────────────────────
+                # Continuously run Stage 2 (throttled) purely to draw boxes on the
+                # live view, so the browser always shows detections. This does NOT
+                # touch the escalation/cooldown/event logic above.
+                if settings.get("live_annotate", True):
+                    every = max(1, int(settings.get("live_annotate_every", 2)))
+                    self._frame_i += 1
+                    if self._frame_i % every == 0:
+                        with self._detector_lock:
+                            s2v = self.detector.predict(
+                                frame,
+                                conf=settings["yolo_confidence"],
+                                iou=settings["yolo_iou"],
+                            )
+                        self._last_live_annot = s2v["annotated"] if s2v["confirmed"] else None
+                    if self._last_live_annot is not None:
+                        display_frame = self._last_live_annot
 
                 self.callbacks.on_frame(self.camera_name, display_frame)
                 
