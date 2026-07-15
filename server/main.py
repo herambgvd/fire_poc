@@ -145,6 +145,32 @@ def events_csv():
     )
 
 
+def _remove_event_files(e: dict) -> None:
+    if e.get("snapshot"):
+        try: (store.SNAPSHOT_DIR / e["snapshot"]).unlink(missing_ok=True)
+        except OSError: pass
+    if e.get("evidence") and os.path.isfile(e["evidence"]):
+        try: os.remove(e["evidence"])
+        except OSError: pass
+
+
+@app.delete("/api/events")
+def clear_events():
+    rows = store.clear_events()
+    for e in rows:
+        _remove_event_files(e)
+    return {"deleted": len(rows)}
+
+
+@app.delete("/api/events/{event_id}")
+def delete_event(event_id: int):
+    e = store.delete_event(event_id)
+    if not e:
+        raise HTTPException(status_code=404, detail="event not found")
+    _remove_event_files(e)
+    return {"deleted": event_id}
+
+
 @app.get("/api/events/{event_id}")
 def event_detail(event_id: int):
     e = store.get_event(event_id)

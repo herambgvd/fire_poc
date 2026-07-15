@@ -138,3 +138,21 @@ def all_events() -> list[dict]:
     with _conn() as c:
         rows = c.execute("SELECT * FROM events ORDER BY id DESC").fetchall()
     return [_row_to_dict(r) for r in rows]
+
+
+def delete_event(event_id: int) -> dict | None:
+    """Delete one event row; returns the deleted row (so its files can be removed)."""
+    e = get_event(event_id)
+    if not e:
+        return None
+    with _conn() as c:
+        c.execute("DELETE FROM events WHERE id = ?", (event_id,))
+    return e
+
+
+def clear_events() -> list[dict]:
+    """Delete ALL events; returns the removed rows (for file cleanup)."""
+    rows = all_events()
+    with _conn() as c:
+        c.execute("DELETE FROM events")
+    return rows

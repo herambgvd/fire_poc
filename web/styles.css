@@ -153,11 +153,13 @@ table.events { width: 100%; border-collapse: collapse; table-layout: fixed; }
 table.events th, table.events td { text-align: left; padding: 14px 18px; font-size: 13px; vertical-align: middle; }
 table.events thead th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .6px; background: var(--panel-2); border-bottom: 1px solid var(--border); }
 /* column widths */
-table.events th:nth-child(1), table.events td:nth-child(1) { width: 34%; }
-table.events th:nth-child(2), table.events td:nth-child(2) { width: 14%; }
-table.events th:nth-child(3), table.events td:nth-child(3) { width: 16%; }
-table.events th:nth-child(4), table.events td:nth-child(4) { width: 18%; }
-table.events th:nth-child(5), table.events td:nth-child(5) { width: 18%; }
+table.events th:nth-child(1), table.events td:nth-child(1) { width: 28%; }
+table.events th:nth-child(2), table.events td:nth-child(2) { width: 13%; }
+table.events th:nth-child(3), table.events td:nth-child(3) { width: 14%; }
+table.events th:nth-child(4), table.events td:nth-child(4) { width: 16%; }
+table.events th:nth-child(5), table.events td:nth-child(5) { width: 17%; }
+table.events th:nth-child(6), table.events td:nth-child(6) { width: 12%; }
+td.act { text-align: right; }
 table.events tbody td { border-top: 1px solid var(--border-soft); height: 64px; }
 table.events tbody tr { transition: background .14s; }
 table.events tbody tr:hover { background: var(--panel-2); }
@@ -173,6 +175,12 @@ td.conf { font-family: var(--mono); font-variant-numeric: tabular-nums; color: v
 .link-btn { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; display: inline-flex; align-items: center; gap: 5px; padding: 4px 0; }
 .link-btn:hover { color: var(--accent-2); text-decoration: underline; }
 .link-btn svg { width: 14px; height: 14px; }
+.icon-btn { background: none; border: 1px solid transparent; color: var(--faint); cursor: pointer; padding: 7px; border-radius: 8px; display: inline-flex; transition: all .16s; }
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn.del:hover { color: var(--fire); border-color: rgba(255,82,82,.4); background: rgba(255,82,82,.1); }
+.tb-actions { display: flex; gap: 8px; }
+.btn.danger { color: var(--fire); }
+.btn.danger:hover { border-color: rgba(255,82,82,.5); background: rgba(255,82,82,.1); }
 .pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; color: var(--muted); font-size: 13px; }
 .pager .mono { color: var(--text); }
 

@@ -92,13 +92,15 @@ async function loadEvents() {
   catch (e) { return; }
   const body = $("eventsBody");
   if (!data.items.length) {
-    body.innerHTML = `<tr><td colspan="5" class="empty">No events${f.type || f.date ? " for this filter" : " yet"}.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="empty">No events${f.type || f.date ? " for this filter" : " yet"}.</td></tr>`;
   } else {
     body.innerHTML = data.items.map(rowHtml).join("");
     body.querySelectorAll("[data-snap]").forEach((el) =>
       el.addEventListener("click", () => openSnapshot(el.dataset.snap, el.dataset.type)));
     body.querySelectorAll("[data-ev]").forEach((el) =>
       el.addEventListener("click", () => openEvidence(el.dataset.ev, el.dataset.type)));
+    body.querySelectorAll("[data-del]").forEach((el) =>
+      el.addEventListener("click", () => deleteEvent(el.dataset.del)));
   }
   const pages = Math.max(1, Math.ceil(data.total / data.page_size));
   $("pgInfo").textContent = `Page ${data.page} / ${pages} · ${data.total} events`;
@@ -117,13 +119,27 @@ function rowHtml(e) {
   const evi = e.has_evidence
     ? `<button class="link-btn" data-ev="${e.id}" data-type="${e.type}">${PLAY_SVG}View clip</button>`
     : '<span class="mut">—</span>';
+  const del = `<button class="icon-btn del" data-del="${e.id}" title="Delete event" aria-label="Delete event">${TRASH_SVG}</button>`;
   return `<tr>
     <td class="time">${fmtTime(e.ts)}</td>
     <td><span class="badge ${e.type}">${e.type}</span></td>
     <td class="conf">${conf}</td>
     <td>${thumb}</td>
-    <td>${evi}</td></tr>`;
+    <td>${evi}</td>
+    <td class="act">${del}</td></tr>`;
 }
+const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>';
+async function deleteEvent(id) {
+  if (!confirm(`Delete event #${id}? Snapshot + clip bhi hat jayenge.`)) return;
+  try { await api(`/api/events/${id}`, { method: "DELETE" }); loadEvents(); }
+  catch (e) { alert("Delete failed: " + e.message); }
+}
+async function clearAllEvents() {
+  if (!confirm("Saare events delete kar dein? Ye undo nahi hoga.")) return;
+  try { const r = await api("/api/events", { method: "DELETE" }); page = 1; loadEvents(); }
+  catch (e) { alert("Clear failed: " + e.message); }
+}
+$("btnClearAll").addEventListener("click", clearAllEvents);
 $("btnFilter").addEventListener("click", () => { page = 1; loadEvents(); });
 $("btnClear").addEventListener("click", () => { $("fType").value = ""; $("fDate").value = ""; page = 1; loadEvents(); });
 $("pgPrev").addEventListener("click", () => { if (page > 1) { page--; loadEvents(); } });

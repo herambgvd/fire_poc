@@ -68,13 +68,17 @@
           <button class="btn" id="btnFilter">Filter</button>
           <button class="btn" id="btnClear">Clear</button>
         </div>
-        <a class="btn" href="/api/events/export.csv">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</a>
+        <div class="tb-actions">
+          <a class="btn" href="/api/events/export.csv">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</a>
+          <button class="btn danger" id="btnClearAll">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Clear all</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table class="events">
-          <thead><tr><th>Time</th><th>Type</th><th>Confidence</th><th>Snapshot</th><th>Evidence</th></tr></thead>
-          <tbody id="eventsBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+          <thead><tr><th>Time</th><th>Type</th><th>Confidence</th><th>Snapshot</th><th>Evidence</th><th></th></tr></thead>
+          <tbody id="eventsBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
         </table>
       </div>
       <div class="pager"><button class="btn" id="pgPrev">Prev</button>
