@@ -1,166 +1,90 @@
-# Fire & Smoke Detection System
+# Fire & Smoke Detection — Web POC
 
-## Overview
+Real-time fire & smoke detection for a single RTSP/CCTV camera, served as a
+**web app**. A lightweight two-stage deep-learning pipeline
+(**MobileNetV3-Small** screening → **YOLOv11n** confirmation) runs on the server;
+the browser shows the **annotated live feed** and a searchable **event history**
+with snapshots and evidence clips.
 
-This project is a real-time fire and smoke detection system developed for Digital Image Processing. The system monitors video input from local test videos or IP-based CCTV camera streams and detects possible fire or smoke incidents using a two-stage deep learning pipeline.
+This is a **POC** (single camera, no login). The production system,
+`vizor_ai_fire`, will run on the vizor platform (auth, multi-camera, storage,
+notifications already provided there).
 
-The application is designed to work as a low-resource, CPU-friendly monitoring system using YOLOv11n and MobileNetV3. It includes a Python-based GUI dashboard, live video monitoring, alert history, confidence scores, system logs, alert sound, and automatic evidence video generation.
-
----
-
-## Team Members
-
-* Arfa Riaz
-* Waqas Ul Hasan
-
-Original team repository: https://github.com/waqasuh/DIP-Project
+> A legacy PyQt6 **desktop** build also still works (`python main.py`) — it shares
+> the same detection `core/`. This README covers the **web** build.
 
 ---
 
-## Key Features
+## Features
 
-* Real-time fire and smoke detection
-* Support for local test videos
-* Support for IP-based CCTV camera streams
-* Two-stage detection pipeline
-* YOLOv11n-based detection model
-* MobileNetV3-based classification/confirmation model
-* Python GUI dashboard
-* Alert history with confidence scores
-* System logging
-* Alert sound notification
-* Automatic evidence video generation
-* Low-resource CPU-focused design
+| Page | What it does |
+|------|--------------|
+| **Live** | RTSP feed streamed to the browser as annotated frames (server draws Stage-2 boxes) via MJPEG. Start/stop monitoring from the UI. |
+| **Events** | Every confirmed fire/smoke detection stored (SQLite) with a snapshot + evidence MP4. Filter by type/date, export CSV, play the clip. |
+| **Dashboard** | Today/total counts, Fire/Smoke split, system status, last event. |
+| **Settings** | RTSP URL + detection thresholds, persisted to `settings.json`. |
 
----
-
-## Detection Pipeline
-
-The system uses a two-stage detection process:
-
-```text
-Video Source
-     ↓
-Frame Capture
-     ↓
-Stage 1: MobileNetV3 Screening
-     ↓
-Stage 2: YOLOv11n Confirmation
-     ↓
-Alert Generation
-     ↓
-Evidence Video + Logs
+## Detection pipeline
 ```
+RTSP frame
+   ↓  Stage 1 — MobileNetV3-Small (cheap, every frame) — screening
+   ↓  (N consecutive hits escalate)
+   ↓  Stage 2 — YOLOv11n — confirm + draw bounding boxes
+   ↓  Confirmed → alert + snapshot + evidence MP4 + event row
+```
+Stage 1 is a cheap high-recall screen; Stage 2 confirms and localizes. Stage 2
+only runs after Stage 1 escalates, so the system stays light on CPU.
 
-Stage 1 performs lightweight screening to detect possible danger frames. Stage 2 confirms the threat using a more detailed object detection model. This approach reduces unnecessary processing and helps the system run efficiently on limited resources.
-
----
-
-## Dataset and Model Training
-
-The dataset was collected and combined by the team using Roboflow. The models were trained and tested using Google Colab GPU resources.
-
-Models used:
-
-* YOLOv11n for fire/smoke detection
-* MobileNetV3 Small for lightweight classification/screening
-
-The system was designed with practical CCTV-based monitoring in mind, especially for environments where GPU resources may not be available during deployment.
-
----
-
-## Application Structure
-
-```text
-Application/
-│
-├── main.py
-├── config.py
-├── logging_config.py
-├── requirements.txt
-├── settings.json
-├── alert_sound.mp3
-├── camera/
-├── core/
-├── gui/
-├── alerts/
-├── evidence/
-├── logs/
-├── mobilenetv3_small_stage1_with_normal.pth
-└── yolon11_stage2_with_normal.pt
+## Project layout
+```
+core/            two-stage detection (framework-agnostic; callback interface)
+server/          FastAPI backend
+  main.py          routes + MJPEG live stream + serves the SPA
+  runner.py        loads models, runs one camera, holds latest annotated frame
+  store.py         SQLite events + snapshot files
+web/             static SPA (dark, vizor-style) — no build step
+data/            (gitignored) fire_poc.db, snapshots/
+evidence/        (gitignored) evidence .mp4 clips
+models:          mobilenetv3_small_stage1_with_normal.pth, yolon11_stage2_with_normal.pt
 ```
 
 ---
 
-## How to Run
+## Run with Docker (recommended)
 
-### 1. Navigate to the project folder
+Prereqs: Docker + Docker Compose.
 
 ```bash
-cd Application
+docker compose up -d --build
 ```
 
-### 2. Install dependencies
+Open **http://localhost:8080** → **Settings** (or the Live panel) → paste the RTSP
+URL → **Start monitoring**.
+
+- Data (events DB, snapshots, evidence clips) persists in named volumes
+  (`fire_data`, `fire_evidence`) across restarts.
+- Change the host port by editing `docker-compose.yml` (`"8080:8080"`).
+- Logs: `docker compose logs -f`   ·   Stop: `docker compose down`
+
+A local video file also works for demos — copy it into the project, then use its
+in-container path (e.g. `/app/demo.mp4`) as the "RTSP URL" (it loops).
+
+## Run without Docker
 
 ```bash
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements-web.txt
+python run_web.py            # or: python -m server.main
 ```
-
-### 3. Run the application
-
-```bash
-python main.py
-```
-
-Alternative command from the root folder:
-
-```bash
-python Application/main.py
-```
+Open http://localhost:8080. `PORT=9000 python run_web.py` to change the port.
 
 ---
 
-## How to Use
+## Notes
+- CPU-only by design.
+- After changing detection settings, **Stop → Start** monitoring to apply them.
+- Models are bundled in the repo; no external download needed.
 
-After launching the GUI dashboard:
-
-1. Click **Test Video** to select a local video file, or add an IP camera URL from **Settings**.
-2. Click **Start Monitoring**.
-3. The system loads Stage 1 and Stage 2 models.
-4. The video feed appears on the dashboard.
-5. Detection logs appear in the System Logs panel.
-6. Confirmed fire or smoke incidents are saved in Alert History.
-7. The system plays an alert sound and generates evidence video.
-
----
-
-## Technologies Used
-
-* Python
-* OpenCV
-* YOLOv11n
-* MobileNetV3
-* PyTorch
-* Roboflow
-* Google Colab
-* GUI-based desktop application
-* Digital Image Processing techniques
-
----
-
-
-## Future Improvements
-
-* Convert the Python application into an executable `.exe`
-* Improve model accuracy using more diverse CCTV fire/smoke data
-* Add support for more simultaneous CCTV feeds
-* Add cloud-based alert storage
-* Deploy on edge devices for real-time monitoring
-
----
-
-## Author
-
-Arfa Riaz
-BS Computer Science
-COMSATS University Islamabad, Lahore Campus
+## Credits
+Original two-stage detection system by Arfa Riaz & Waqas Ul Hasan
+(https://github.com/waqasuh/DIP-Project). Web POC re-platforming on top of that core.
