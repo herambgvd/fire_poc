@@ -29,6 +29,9 @@ RUN if [ "$TORCH_CHANNEL" = "cuda" ]; then \
 COPY requirements-web.txt .
 RUN uv pip install --system -r requirements-web.txt
 
+# Pre-fetch the COCO person model (person guard) into /app so it works offline.
+RUN python -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
+
 # App source (models included). See .dockerignore for exclusions.
 COPY . .
 

@@ -11,7 +11,10 @@ from dotenv import load_dotenv
 # ── Paths ──────────────────────────────────────────────────────────────────────
 APP_DIR = Path(__file__).parent.resolve()
 ENV_FILE = APP_DIR / ".env"
-SETTINGS_FILE = APP_DIR / "settings.json"
+# Settings file location. Override with VE_SETTINGS_FILE to a persistent path
+# (e.g. /app/data/settings.json on a mounted volume) so ROI + thresholds + RTSP
+# survive container recreation/rebuilds.
+SETTINGS_FILE = Path(os.getenv("VE_SETTINGS_FILE", str(APP_DIR / "settings.json")))
 LOGS_DIR = APP_DIR / "logs"
 EVIDENCE_DIR = APP_DIR / "evidence"
 ALERT_SOUND_FILE = APP_DIR / "alert_sound.mp3"
@@ -39,6 +42,17 @@ DEFAULTS = {
     # run Stage-2 every Nth frame for display (event/cooldown logic is unaffected).
     "live_annotate": True,
     "live_annotate_every": 2,
+
+    # Region of interest (web POC): [x1, y1, x2, y2] normalized 0-1, or None for
+    # the whole frame. Detections whose box centre falls outside are ignored —
+    # cuts false positives (e.g. a yellow shirt) outside the monitored zone.
+    "roi": None,
+
+    # Person guard: veto fire/smoke boxes that mostly overlap a detected person
+    # (warm-coloured clothing misread as fire). person_overlap = min fraction of
+    # the fire box inside a person box to suppress it.
+    "suppress_person": True,
+    "person_overlap": 0.35,
 
     # Buffering & Evidence Timing
     "buffer_seconds": 15,

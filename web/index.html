@@ -35,11 +35,19 @@
     <section class="view active" id="view-live">
       <div class="live-wrap">
         <div class="live-main">
-          <div class="video-frame">
+          <div class="video-frame" id="videoFrame">
             <img id="liveImg" alt="Live camera feed with fire/smoke detection overlay" />
             <div class="live-badge" id="liveBadge"><span class="rec"></span>LIVE</div>
+            <div class="roi-box" id="roiBox" style="display:none"></div>
+            <div class="roi-layer" id="roiLayer"></div>
           </div>
           <div class="live-status"><span class="sdot" id="statusSdot"></span><span id="pipelineStatus">Idle</span></div>
+          <div class="roi-tools">
+            <button class="btn" id="btnRoiDraw">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 3"/></svg><span id="roiDrawLabel">Draw ROI</span></button>
+            <button class="btn" id="btnRoiClear">Clear ROI</button>
+            <span class="hint" id="roiHint">Set an ROI — detection runs only inside that zone.</span>
+          </div>
         </div>
         <aside class="live-side feed-side">
           <h3>Live events</h3>
@@ -109,7 +117,7 @@
     <section class="view" id="view-settings">
       <div class="panel form">
         <h3>Camera</h3>
-        <div class="field"><label for="sRtsp">RTSP URL <span class="mut">(ya local file: /app/videos/name.mp4)</span></label>
+        <div class="field"><label for="sRtsp">RTSP URL <span class="mut">(or local file: /app/videos/name.mp4)</span></label>
           <input id="sRtsp" type="text" placeholder="rtsp://user:pass@ip:554/stream" /></div>
         <div class="btn-row">
           <button class="btn primary" id="btnToggle">
@@ -120,7 +128,7 @@
         <div class="kv"><span>Models</span><b id="kvModels" class="mut">—</b></div>
         <div class="kv"><span>Camera</span><b id="kvCam" class="mut">—</b></div>
         <div class="kv"><span>Source</span><b class="src" id="kvSource">—</b></div>
-        <p class="hint">Local video file bhi de sakte ho (loop hoga) — RTSP live chalega. Bounding boxes server-side draw hote hain.</p>
+        <p class="hint">You can also use a local video file (it loops) — RTSP runs live. Bounding boxes are drawn server-side.</p>
       </div>
       <div class="panel form">
         <h3>Detection settings</h3>
@@ -135,7 +143,7 @@
         </div>
         <div class="save-row"><button class="btn primary" id="btnSaveSettings">Save settings</button>
           <span class="save-msg" id="saveMsg"></span></div>
-        <p class="hint">Settings change ke baad monitoring <b>Stop → Start</b> karo taaki naye thresholds lagein.</p>
+        <p class="hint">After changing settings, <b>Stop → Start</b> monitoring to apply the new thresholds.</p>
       </div>
     </section>
   </main>
@@ -146,6 +154,18 @@
       <div class="modal-head"><span id="modalTitle">Evidence</span><button class="x" id="modalClose" aria-label="Close">✕</button></div>
       <video id="modalVideo" controls></video>
       <img id="modalImg" alt="detection snapshot" style="display:none" />
+    </div>
+  </div>
+
+  <!-- confirm dialog -->
+  <div class="modal" id="confirmModal">
+    <div class="modal-box confirm-box">
+      <div class="modal-head"><span id="confirmTitle">Confirm</span></div>
+      <div class="confirm-body" id="confirmMsg"></div>
+      <div class="confirm-actions">
+        <button class="btn" id="confirmCancel">Cancel</button>
+        <button class="btn danger" id="confirmOk">Delete</button>
+      </div>
     </div>
   </div>
 

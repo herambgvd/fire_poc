@@ -146,6 +146,9 @@ class CameraPipeline:
                         frame,
                         conf=settings["yolo_confidence"],
                         iou=settings["yolo_iou"],
+                        roi=settings.get("roi"),
+                        suppress_person=settings.get("suppress_person", True),
+                        person_overlap=settings.get("person_overlap", 0.35),
                     )
 
                 if s2_result["confirmed"]:
@@ -249,6 +252,9 @@ class CameraPipeline:
                             frame,
                             conf=settings["yolo_confidence"],
                             iou=settings["yolo_iou"],
+                            roi=settings.get("roi"),
+                            suppress_person=settings.get("suppress_person", True),
+                            person_overlap=settings.get("person_overlap", 0.35),
                         )
 
                     # Store frame in hi-res buffer (annotated if detected)
@@ -408,6 +414,9 @@ class CameraPipeline:
                                 frame,
                                 conf=settings["yolo_confidence"],
                                 iou=settings["yolo_iou"],
+                                roi=settings.get("roi"),
+                                suppress_person=settings.get("suppress_person", True),
+                                person_overlap=settings.get("person_overlap", 0.35),
                             )
                         self._last_live_annot = s2v["annotated"] if s2v["confirmed"] else None
                     if self._last_live_annot is not None:

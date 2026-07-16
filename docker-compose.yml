@@ -4,6 +4,9 @@ services:
     image: fire-poc:latest
     container_name: fire-poc
     restart: unless-stopped
+    environment:
+      # persist ROI + thresholds + RTSP across restarts (data is a named volume)
+      VE_SETTINGS_FILE: /app/data/settings.json
     ports:
       - "8080:8080"
     volumes:

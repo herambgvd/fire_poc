@@ -213,6 +213,31 @@ def get_settings():
     return {k: settings.get(k) for k in _EDITABLE}
 
 
+@app.get("/api/roi")
+def get_roi():
+    return {"roi": settings.get("roi")}
+
+
+@app.put("/api/roi")
+def put_roi(body: dict = Body(...)):
+    roi = (body or {}).get("roi")
+    if roi is None:
+        settings["roi"] = None
+    else:
+        try:
+            x1, y1, x2, y2 = (float(v) for v in roi)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="roi must be [x1,y1,x2,y2] normalized 0-1, or null")
+        clamp = lambda v: max(0.0, min(1.0, v))
+        x1, x2 = sorted((clamp(x1), clamp(x2)))
+        y1, y2 = sorted((clamp(y1), clamp(y2)))
+        if (x2 - x1) < 0.03 or (y2 - y1) < 0.03:
+            raise HTTPException(status_code=400, detail="ROI too small — draw a bigger region")
+        settings["roi"] = [x1, y1, x2, y2]
+    settings.save()
+    return {"roi": settings.get("roi")}
+
+
 @app.put("/api/settings")
 def put_settings(body: dict = Body(...)):
     changed = {}

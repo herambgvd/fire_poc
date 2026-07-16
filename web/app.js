@@ -17,7 +17,7 @@ function setView(name) {
   if (name === "events") loadEvents();
   if (name === "dashboard") loadDashboard();
   if (name === "settings") loadSettings();
-  if (name === "live") loadFeed();
+  if (name === "live") { loadFeed(); showRoiBox(); }
 }
 const isActive = (name) => $("view-" + name).classList.contains("active");
 
@@ -31,6 +31,24 @@ function toast(msg, type = "info") {
   setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 220); }, 3000);
 }
 
+// ── confirm dialog (replaces window.confirm) ────────────────────────────────
+function askConfirm(msg, okLabel = "Delete", title = "Confirm") {
+  return new Promise((resolve) => {
+    $("confirmTitle").textContent = title;
+    $("confirmMsg").textContent = msg;
+    $("confirmOk").textContent = okLabel;
+    $("confirmModal").classList.add("open");
+    const done = (v) => {
+      $("confirmModal").classList.remove("open");
+      $("confirmOk").onclick = $("confirmCancel").onclick = $("confirmModal").onclick = null;
+      resolve(v);
+    };
+    $("confirmOk").onclick = () => done(true);
+    $("confirmCancel").onclick = () => done(false);
+    $("confirmModal").onclick = (e) => { if (e.target.id === "confirmModal") done(false); };
+  });
+}
+
 // ── live video + monitoring toggle ───────────────────────────────────────────
 $("liveImg").src = "/api/live";
 let running = false;
@@ -39,7 +57,7 @@ $("btnToggle").addEventListener("click", () => (running ? stopMonitoring() : sta
 
 async function startMonitoring() {
   const rtsp = $("sRtsp").value.trim();
-  if (!rtsp) { toast("Pehle RTSP URL / video path daalo", "error"); $("sRtsp").focus(); return; }
+  if (!rtsp) { toast("Enter an RTSP URL or video path first", "error"); $("sRtsp").focus(); return; }
   $("btnToggle").disabled = true;
   try {
     await api("/api/control/start", {
@@ -87,6 +105,88 @@ function feedItemHtml(e) {
     <span class="fi-conf">${conf}</span></div>`;
 }
 
+// ── ROI drawing ──────────────────────────────────────────────────────────────
+let currentRoi = null;    // normalized [x1,y1,x2,y2] or null
+let roiDrawing = false;
+
+// The MJPEG <img> is letterboxed (object-fit: contain); map element px <-> the
+// actual video content rectangle so the ROI aligns with real frame coordinates.
+function contentRect() {
+  const img = $("liveImg");
+  const nW = img.naturalWidth, nH = img.naturalHeight;
+  const eW = img.clientWidth, eH = img.clientHeight;
+  if (!nW || !nH) return { x: 0, y: 0, w: eW, h: eH };
+  const s = Math.min(eW / nW, eH / nH);
+  const w = nW * s, h = nH * s;
+  return { x: (eW - w) / 2, y: (eH - h) / 2, w, h };
+}
+function showRoiBox() {
+  if (roiDrawing) return;                        // drag handler owns the box
+  const box = $("roiBox");
+  if (!currentRoi || running) { box.style.display = "none"; return; }  // running: server draws it
+  const c = contentRect(), [x1, y1, x2, y2] = currentRoi;
+  box.style.display = "block";
+  box.style.left = (c.x + x1 * c.w) + "px";
+  box.style.top = (c.y + y1 * c.h) + "px";
+  box.style.width = ((x2 - x1) * c.w) + "px";
+  box.style.height = ((y2 - y1) * c.h) + "px";
+}
+async function loadRoi() {
+  try { const d = await api("/api/roi"); currentRoi = d.roi; showRoiBox(); } catch (e) {}
+}
+function setRoiDraw(on) {
+  roiDrawing = on;
+  $("roiLayer").classList.toggle("active", on);
+  $("btnRoiDraw").classList.toggle("active", on);
+  $("roiDrawLabel").textContent = on ? "Drawing… drag on video" : "Draw ROI";
+  if (on) { $("roiBox").style.display = "none"; } else { showRoiBox(); }
+}
+$("btnRoiDraw").addEventListener("click", () => setRoiDraw(!roiDrawing));
+(() => {
+  const layer = $("roiLayer"), frame = $("videoFrame"), box = $("roiBox");
+  let start = null;
+  const pos = (e) => { const r = frame.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  layer.addEventListener("mousedown", (e) => {
+    if (!roiDrawing) return;
+    start = pos(e);
+    box.style.display = "block";
+    box.style.left = start.x + "px"; box.style.top = start.y + "px";
+    box.style.width = "0px"; box.style.height = "0px";
+  });
+  layer.addEventListener("mousemove", (e) => {
+    if (!roiDrawing || !start) return;
+    const p = pos(e);
+    box.style.left = Math.min(start.x, p.x) + "px";
+    box.style.top = Math.min(start.y, p.y) + "px";
+    box.style.width = Math.abs(p.x - start.x) + "px";
+    box.style.height = Math.abs(p.y - start.y) + "px";
+  });
+  layer.addEventListener("mouseup", async (e) => {
+    if (!roiDrawing || !start) return;
+    const p = pos(e), s = start; start = null;
+    const c = contentRect();
+    const nx1 = (Math.min(s.x, p.x) - c.x) / c.w, ny1 = (Math.min(s.y, p.y) - c.y) / c.h;
+    const nx2 = (Math.max(s.x, p.x) - c.x) / c.w, ny2 = (Math.max(s.y, p.y) - c.y) / c.h;
+    setRoiDraw(false);
+    if ((nx2 - nx1) < 0.03 || (ny2 - ny1) < 0.03) { toast("ROI is too small — draw a larger zone", "error"); showRoiBox(); return; }
+    try {
+      const d = await api("/api/roi", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roi: [nx1, ny1, nx2, ny2] }) });
+      currentRoi = d.roi; showRoiBox();
+      toast("ROI set — detection is now limited to this zone", "success");
+    } catch (err) { toast("ROI save failed: " + err.message, "error"); showRoiBox(); }
+  });
+})();
+$("btnRoiClear").addEventListener("click", async () => {
+  if (!currentRoi) { toast("No ROI is set", "info"); return; }
+  try {
+    await api("/api/roi", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roi: null }) });
+    currentRoi = null; showRoiBox();
+    toast("ROI cleared — monitoring the full frame", "info");
+  } catch (e) { toast("ROI clear failed: " + e.message, "error"); }
+});
+$("liveImg").addEventListener("load", showRoiBox);
+window.addEventListener("resize", showRoiBox);
+
 // ── status polling ───────────────────────────────────────────────────────────
 let lastEventId = null;
 const setKv = (id, ok, yes, no) => {
@@ -116,6 +216,7 @@ async function refreshStatus() {
     $("kvSource").className = s.source ? "src" : "src mut";
     setKv("kvModels", s.models_loaded, "loaded", "not loaded");
     setKv("kvCam", s.camera_online, "online", "offline");
+    showRoiBox();
   } catch (e) { /* ignore transient */ }
 }
 
@@ -188,12 +289,12 @@ function rowHtml(e) {
 }
 const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>';
 async function deleteEvent(id) {
-  if (!confirm(`Delete event #${id}? Snapshot + clip bhi hat jayenge.`)) return;
+  if (!(await askConfirm(`Delete event #${id}? Its snapshot and clip will also be removed.`, "Delete", "Delete event"))) return;
   try { await api(`/api/events/${id}`, { method: "DELETE" }); toast("Event deleted", "success"); loadEvents(); }
   catch (e) { toast("Delete failed: " + e.message, "error"); }
 }
 async function clearAllEvents() {
-  if (!confirm("Saare events delete kar dein? Ye undo nahi hoga.")) return;
+  if (!(await askConfirm("All events will be permanently deleted (including snapshots and clips). Continue?", "Delete all", "Clear all events"))) return;
   try { const r = await api("/api/events", { method: "DELETE" }); toast(`${r.deleted} events cleared`, "success"); page = 1; loadEvents(); }
   catch (e) { toast("Clear failed: " + e.message, "error"); }
 }
@@ -266,7 +367,7 @@ $("btnSaveSettings").addEventListener("click", async () => {
       body: JSON.stringify(body),
     });
     toast("Settings saved", "success");
-    if (running) toast("Naye thresholds ke liye Stop → Start karo", "info");
+    if (running) toast("Stop and start monitoring to apply the new thresholds", "info");
   } catch (e) { toast("Save failed: " + e.message, "error"); }
 });
 
@@ -274,6 +375,7 @@ $("btnSaveSettings").addEventListener("click", async () => {
 refreshStatus();
 loadSettings();
 loadFeed();
+loadRoi();
 setInterval(refreshStatus, 3000);
 setInterval(pollNewEvents, 4000);
 pollNewEvents();

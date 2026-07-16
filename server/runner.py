@@ -62,8 +62,21 @@ class PipelineRunner:
             num_classes=int(settings.get("num_classes", 2)),
             device=device,
         )
-        self._detector = Stage2Detector(model_path=str(settings.stage2_path), device=device)
-        logger.info("models loaded (device=%s)", device)
+
+        # Optional person guard (COCO YOLO) to suppress person → fire false positives.
+        person_guard = None
+        if settings.get("suppress_person", True):
+            try:
+                from core.person_guard import PersonGuard
+                person_guard = PersonGuard(device=device)
+            except Exception as exc:  # noqa: BLE001 — degrade gracefully
+                logger.warning("person guard unavailable (%s); continuing without it", exc)
+
+        self._detector = Stage2Detector(
+            model_path=str(settings.stage2_path), device=device,
+            person_detector=person_guard,
+        )
+        logger.info("models loaded (device=%s, person_guard=%s)", device, person_guard is not None)
 
     @property
     def models_loaded(self) -> bool:

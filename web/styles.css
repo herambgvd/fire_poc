@@ -144,6 +144,19 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
 .kv .src { font-family: var(--mono); font-size: 11.5px; color: var(--muted); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
 .hint { color: var(--faint); font-size: 12px; margin: 14px 0 0; line-height: 1.55; }
 
+/* ── ROI drawing (Live) ──────────────────────────────────────────────────── */
+.roi-box { position: absolute; z-index: 2; border: 2px dashed var(--accent); background: rgba(255,106,43,.12); pointer-events: none; border-radius: 2px; }
+.roi-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.roi-layer.active { pointer-events: auto; cursor: crosshair; background: rgba(0,0,0,.15); }
+.roi-tools { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.roi-tools .hint { margin: 0; }
+.btn.active { border-color: var(--accent); color: var(--accent); }
+
+/* ── confirm dialog ──────────────────────────────────────────────────────── */
+.confirm-box { width: min(420px, 92vw); }
+.confirm-body { padding: 18px; color: var(--text); font-size: 14px; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); }
+
 /* ── live events feed (Live page sidebar) ────────────────────────────────── */
 .feed-side { display: flex; flex-direction: column; max-height: calc(100vh - 140px); }
 .feed { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: -2px; padding: 2px; }
