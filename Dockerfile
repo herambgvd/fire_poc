@@ -15,10 +15,15 @@ ENV UV_SYSTEM_PYTHON=1 UV_NO_CACHE=1 \
 
 WORKDIR /app
 
-# CPU-only torch first, from the CPU wheel index — avoids the multi-GB CUDA
-# build that the default index would pull (this POC is CPU-only by design).
-RUN uv pip install --system --index-url https://download.pytorch.org/whl/cpu \
-      torch torchvision
+# torch install. Default: CPU-only wheels (small, runs anywhere).
+# For a GPU box, build with --build-arg TORCH_CHANNEL=cuda (pulls the CUDA build;
+# needs the NVIDIA driver + nvidia-container-toolkit on the host at run time).
+ARG TORCH_CHANNEL=cpu
+RUN if [ "$TORCH_CHANNEL" = "cuda" ]; then \
+      uv pip install --system torch torchvision ; \
+    else \
+      uv pip install --system --index-url https://download.pytorch.org/whl/cpu torch torchvision ; \
+    fi
 
 # Remaining Python deps (torch/torchvision already satisfied above).
 COPY requirements-web.txt .

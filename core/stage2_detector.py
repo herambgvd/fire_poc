@@ -24,17 +24,21 @@ class Stage2Detector:
     }
     LABELS = {0: "Fire", 1: "Smoke"}
 
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, device: str | None = None):
         self.model = YOLO(model_path)
-        # Force CPU
-        self.model.to("cpu")
+        # Use CUDA when available (GPU box), else CPU. Explicit device overrides.
+        if device is None:
+            import torch
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
+        self.model.to(device)
         # Pre-fuse the model so that predict() does not attempt to fuse
         # again from a background thread (which can crash with 'bn' errors).
         try:
             self.model.fuse()
         except Exception:
             pass  # already fused or not applicable
-        logger.info(f"Stage 2 detector loaded from {model_path}")
+        logger.info(f"Stage 2 detector loaded from {model_path} (device={device})")
 
     def predict(self, bgr_frame: np.ndarray, conf: float = 0.5,
                 iou: float = 0.45) -> dict:
@@ -55,7 +59,7 @@ class Stage2Detector:
             conf=conf,
             iou=iou,
             verbose=False,
-            device="cpu",
+            device=self.device,
         )
         elapsed = (time.perf_counter() - t0) * 1000
 

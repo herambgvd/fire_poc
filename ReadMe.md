@@ -55,8 +55,15 @@ models:          mobilenetv3_small_stage1_with_normal.pth, yolon11_stage2_with_n
 Prereqs: Docker + Docker Compose.
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build          # CPU
 ```
+
+**GPU box** (NVIDIA driver + nvidia-container-toolkit, e.g. the wonin server):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+This builds the CUDA torch image and gives the container a GPU; detection runs on
+CUDA automatically (check `docker compose logs -f` for `models loaded (device=cuda)`).
 
 Open **http://localhost:8080** → **Settings** (or the Live panel) → paste the RTSP
 URL → **Start monitoring**.

@@ -1,0 +1,22 @@
+# GPU overlay for the Fire POC — use on a machine with an NVIDIA GPU +
+# nvidia-container-toolkit (e.g. the wonin box that already runs Triton on GPU).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# Builds the CUDA torch image and grants the container a GPU. Detection
+# (Stage-1 MobileNetV3 + Stage-2 YOLO) then runs on CUDA automatically.
+services:
+  fire-poc:
+    build:
+      args:
+        TORCH_CHANNEL: cuda
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

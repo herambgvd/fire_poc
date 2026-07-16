@@ -50,18 +50,20 @@ class PipelineRunner:
     def _ensure_models(self) -> None:
         if self._classifier is not None and self._detector is not None:
             return
+        import torch
         from core.stage1_classifier import Stage1Classifier
         from core.stage2_detector import Stage2Detector
 
-        logger.info("loading models (stage1=%s, stage2=%s)",
-                    settings.stage1_path, settings.stage2_path)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info("loading models on %s (stage1=%s, stage2=%s)",
+                    device, settings.stage1_path, settings.stage2_path)
         self._classifier = Stage1Classifier(
             model_path=str(settings.stage1_path),
             num_classes=int(settings.get("num_classes", 2)),
-            device="cpu",
+            device=device,
         )
-        self._detector = Stage2Detector(model_path=str(settings.stage2_path))
-        logger.info("models loaded")
+        self._detector = Stage2Detector(model_path=str(settings.stage2_path), device=device)
+        logger.info("models loaded (device=%s)", device)
 
     @property
     def models_loaded(self) -> bool:
