@@ -17,27 +17,75 @@ function setView(name) {
   if (name === "events") loadEvents();
   if (name === "dashboard") loadDashboard();
   if (name === "settings") loadSettings();
+  if (name === "live") loadFeed();
+}
+const isActive = (name) => $("view-" + name).classList.contains("active");
+
+// ── toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type = "info") {
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.innerHTML = `<span class="tdot"></span><span></span>`;
+  el.lastChild.textContent = msg;
+  $("toasts").appendChild(el);
+  setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 220); }, 3000);
 }
 
-// ── live feed ────────────────────────────────────────────────────────────────
+// ── live video + monitoring toggle ───────────────────────────────────────────
 $("liveImg").src = "/api/live";
+let running = false;
 
-$("btnStart").addEventListener("click", async () => {
-  const rtsp = $("liveRtsp").value.trim();
+$("btnToggle").addEventListener("click", () => (running ? stopMonitoring() : startMonitoring()));
+
+async function startMonitoring() {
+  const rtsp = $("sRtsp").value.trim();
+  if (!rtsp) { toast("Pehle RTSP URL / video path daalo", "error"); $("sRtsp").focus(); return; }
+  $("btnToggle").disabled = true;
   try {
     await api("/api/control/start", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rtsp ? { rtsp_url: rtsp } : {}),
+      body: JSON.stringify({ rtsp_url: rtsp }),
     });
-    // reload stream so it reconnects to fresh frames
     $("liveImg").src = "/api/live?t=" + Date.now();
+    toast("Monitoring started", "success");
     refreshStatus();
-  } catch (e) { alert("Start failed: " + e.message); }
-});
-$("btnStop").addEventListener("click", async () => {
-  try { await api("/api/control/stop", { method: "POST" }); refreshStatus(); }
-  catch (e) { alert("Stop failed: " + e.message); }
-});
+  } catch (e) { toast("Start failed: " + e.message, "error"); }
+  finally { $("btnToggle").disabled = false; }
+}
+async function stopMonitoring() {
+  $("btnToggle").disabled = true;
+  try {
+    await api("/api/control/stop", { method: "POST" });
+    toast("Monitoring stopped", "info");
+    refreshStatus();
+  } catch (e) { toast("Stop failed: " + e.message, "error"); }
+  finally { $("btnToggle").disabled = false; }
+}
+
+const T_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+const T_STOP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+
+// ── live events feed ─────────────────────────────────────────────────────────
+async function loadFeed() {
+  try { const d = await api("/api/events?page_size=20"); renderFeed(d.items); } catch (e) {}
+}
+function renderFeed(items) {
+  const f = $("liveFeed");
+  if (!items || !items.length) { f.innerHTML = '<div class="feed-empty">Waiting for detections…</div>'; return; }
+  f.innerHTML = items.map(feedItemHtml).join("");
+  f.querySelectorAll("[data-ev]").forEach((el) =>
+    el.addEventListener("click", () => (el.dataset.hasclip === "1"
+      ? openEvidence(el.dataset.ev, el.dataset.type)
+      : openSnapshot(el.dataset.ev, el.dataset.type))));
+}
+function feedItemHtml(e) {
+  const conf = e.confidence != null ? (e.confidence * 100).toFixed(0) + "%" : "";
+  const thumb = e.has_snapshot ? `<img src="/api/events/${e.id}/snapshot" alt="snapshot"/>` : "";
+  return `<div class="feed-item" data-ev="${e.id}" data-type="${e.type}" data-hasclip="${e.has_evidence ? 1 : 0}">
+    ${thumb}
+    <div class="fi-main"><span class="badge ${e.type}">${e.type}</span><div class="fi-time">${fmtTime(e.ts)}</div></div>
+    <span class="fi-conf">${conf}</span></div>`;
+}
 
 // ── status polling ───────────────────────────────────────────────────────────
 let lastEventId = null;
@@ -49,13 +97,21 @@ const setKv = (id, ok, yes, no) => {
 async function refreshStatus() {
   try {
     const s = await api("/api/status");
-    const running = s.running;
+    running = s.running;
     $("statusDot").className = "dot " + (running ? "on" : "off");
     $("statusLabel").textContent = running ? "Monitoring" : "Stopped";
     $("pipelineStatus").textContent = s.status_text || (running ? "Running" : "Idle");
     $("statusSdot").style.background = running
       ? (s.camera_online ? "var(--ok)" : "var(--warn)") : "var(--faint)";
     $("liveBadge").style.display = running ? "flex" : "none";
+    // flipper toggle (in Settings)
+    const btn = $("btnToggle");
+    if (btn) {
+      btn.classList.toggle("running", running);
+      btn.innerHTML = (running ? T_STOP : T_PLAY) +
+        `<span id="toggleLabel">${running ? "Stop monitoring" : "Start monitoring"}</span>`;
+    }
+    setKv("kvRunning", running, "Active", "Stopped");
     $("kvSource").textContent = s.source || "—";
     $("kvSource").className = s.source ? "src" : "src mut";
     setKv("kvModels", s.models_loaded, "loaded", "not loaded");
@@ -70,10 +126,12 @@ async function pollNewEvents() {
     if (last) {
       if (lastEventId !== null && last.id > lastEventId) {
         try { $("alertAudio").play().catch(() => {}); } catch (e) {}
-        if (document.querySelector("#view-events").classList.contains("active")) loadEvents();
+        toast(`${last.type} detected`, "error");
+        if (isActive("events")) loadEvents();
       }
       lastEventId = last.id;
     } else { lastEventId = 0; }
+    if (isActive("live")) loadFeed();
   } catch (e) {}
 }
 
@@ -131,13 +189,13 @@ function rowHtml(e) {
 const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/></svg>';
 async function deleteEvent(id) {
   if (!confirm(`Delete event #${id}? Snapshot + clip bhi hat jayenge.`)) return;
-  try { await api(`/api/events/${id}`, { method: "DELETE" }); loadEvents(); }
-  catch (e) { alert("Delete failed: " + e.message); }
+  try { await api(`/api/events/${id}`, { method: "DELETE" }); toast("Event deleted", "success"); loadEvents(); }
+  catch (e) { toast("Delete failed: " + e.message, "error"); }
 }
 async function clearAllEvents() {
   if (!confirm("Saare events delete kar dein? Ye undo nahi hoga.")) return;
-  try { const r = await api("/api/events", { method: "DELETE" }); page = 1; loadEvents(); }
-  catch (e) { alert("Clear failed: " + e.message); }
+  try { const r = await api("/api/events", { method: "DELETE" }); toast(`${r.deleted} events cleared`, "success"); page = 1; loadEvents(); }
+  catch (e) { toast("Clear failed: " + e.message, "error"); }
 }
 $("btnClearAll").addEventListener("click", clearAllEvents);
 $("btnFilter").addEventListener("click", () => { page = 1; loadEvents(); });
@@ -195,7 +253,6 @@ async function loadSettings() {
   let s;
   try { s = await api("/api/settings"); } catch (e) { return; }
   for (const [k, id] of Object.entries(SMAP)) if (s[k] != null) $(id).value = s[k];
-  if (s.rtsp_url && !$("liveRtsp").value) $("liveRtsp").value = s.rtsp_url;
 }
 $("btnSaveSettings").addEventListener("click", async () => {
   const body = {};
@@ -208,15 +265,15 @@ $("btnSaveSettings").addEventListener("click", async () => {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    $("saveMsg").textContent = "Saved ✓"; $("saveMsg").className = "save-msg";
-    setTimeout(() => ($("saveMsg").textContent = ""), 2500);
-    if (body.rtsp_url) $("liveRtsp").value = body.rtsp_url;
-  } catch (e) { $("saveMsg").textContent = "Error: " + e.message; $("saveMsg").className = "save-msg err"; }
+    toast("Settings saved", "success");
+    if (running) toast("Naye thresholds ke liye Stop → Start karo", "info");
+  } catch (e) { toast("Save failed: " + e.message, "error"); }
 });
 
 // ── boot ─────────────────────────────────────────────────────────────────────
 refreshStatus();
 loadSettings();
+loadFeed();
 setInterval(refreshStatus, 3000);
 setInterval(pollNewEvents, 4000);
 pollNewEvents();

@@ -41,21 +41,9 @@
           </div>
           <div class="live-status"><span class="sdot" id="statusSdot"></span><span id="pipelineStatus">Idle</span></div>
         </div>
-        <aside class="live-side">
-          <h3>Camera</h3>
-          <div class="field"><label for="liveRtsp">RTSP URL</label>
-            <input id="liveRtsp" type="text" placeholder="rtsp://user:pass@ip:554/stream" /></div>
-          <div class="btn-row">
-            <button class="btn primary" id="btnStart">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Start monitoring</button>
-            <button class="btn" id="btnStop">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>
-          </div>
-          <div class="divider"></div>
-          <div class="kv"><span>Source</span><b class="src" id="kvSource">—</b></div>
-          <div class="kv"><span>Models</span><b id="kvModels" class="mut">—</b></div>
-          <div class="kv"><span>Camera</span><b id="kvCam" class="mut">—</b></div>
-          <p class="hint">Local video file bhi de sakte ho (loop hoga) — RTSP live chalega. Bounding boxes server-side draw hote hain.</p>
+        <aside class="live-side feed-side">
+          <h3>Live events</h3>
+          <div id="liveFeed" class="feed"><div class="feed-empty">Waiting for detections…</div></div>
         </aside>
       </div>
     </section>
@@ -120,8 +108,22 @@
     <!-- SETTINGS -->
     <section class="view" id="view-settings">
       <div class="panel form">
+        <h3>Camera</h3>
+        <div class="field"><label for="sRtsp">RTSP URL <span class="mut">(ya local file: /app/videos/name.mp4)</span></label>
+          <input id="sRtsp" type="text" placeholder="rtsp://user:pass@ip:554/stream" /></div>
+        <div class="btn-row">
+          <button class="btn primary" id="btnToggle">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span id="toggleLabel">Start monitoring</span></button>
+        </div>
+        <div class="divider"></div>
+        <div class="kv"><span>Monitoring</span><b id="kvRunning" class="mut">—</b></div>
+        <div class="kv"><span>Models</span><b id="kvModels" class="mut">—</b></div>
+        <div class="kv"><span>Camera</span><b id="kvCam" class="mut">—</b></div>
+        <div class="kv"><span>Source</span><b class="src" id="kvSource">—</b></div>
+        <p class="hint">Local video file bhi de sakte ho (loop hoga) — RTSP live chalega. Bounding boxes server-side draw hote hain.</p>
+      </div>
+      <div class="panel form">
         <h3>Detection settings</h3>
-        <div class="field"><label for="sRtsp">RTSP URL</label><input id="sRtsp" type="text" /></div>
         <div class="grid2">
           <div class="field"><label for="sClsThr">Stage-1 threshold (0–1)</label><input id="sClsThr" type="number" step="0.05" min="0" max="1" /></div>
           <div class="field"><label for="sConsec">Consecutive frames</label><input id="sConsec" type="number" step="1" min="1" /></div>
@@ -146,6 +148,8 @@
       <img id="modalImg" alt="detection snapshot" style="display:none" />
     </div>
   </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <audio id="alertAudio" src="/api/alert-sound" preload="auto"></audio>
   <script src="/app.js"></script>

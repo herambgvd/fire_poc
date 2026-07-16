@@ -144,6 +144,40 @@ input:focus, select:focus { outline: none; border-color: var(--accent); box-shad
 .kv .src { font-family: var(--mono); font-size: 11.5px; color: var(--muted); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
 .hint { color: var(--faint); font-size: 12px; margin: 14px 0 0; line-height: 1.55; }
 
+/* ── live events feed (Live page sidebar) ────────────────────────────────── */
+.feed-side { display: flex; flex-direction: column; max-height: calc(100vh - 140px); }
+.feed { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: -2px; padding: 2px; }
+.feed-empty { color: var(--faint); font-size: 13px; text-align: center; padding: 30px 10px; }
+.feed-item {
+  display: flex; align-items: center; gap: 11px; padding: 8px; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  transition: border-color .16s, background .16s; animation: fade .25s ease;
+}
+.feed-item:hover { border-color: var(--accent); background: var(--panel-2); }
+.feed-item img { width: 60px; height: 40px; object-fit: cover; border-radius: 6px; flex: none; background: #000; }
+.feed-item .fi-main { min-width: 0; flex: 1; }
+.feed-item .fi-time { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.feed-item .fi-conf { font-family: var(--mono); font-size: 12px; color: var(--text); margin-left: auto; flex: none; }
+
+/* ── toasts ──────────────────────────────────────────────────────────────── */
+.toasts { position: fixed; right: 20px; bottom: 20px; z-index: 90; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  display: flex; align-items: center; gap: 10px; min-width: 220px; max-width: 340px;
+  padding: 12px 15px; border-radius: var(--radius-sm); font-size: 13.5px;
+  background: var(--elev); border: 1px solid var(--border); color: var(--text);
+  box-shadow: 0 8px 28px -8px rgba(0,0,0,.6); animation: toastIn .22s ease;
+}
+.toast.out { animation: toastOut .2s ease forwards; }
+.toast .tdot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--muted); }
+.toast.success { border-color: rgba(53,208,138,.4); } .toast.success .tdot { background: var(--ok); }
+.toast.error { border-color: rgba(255,82,82,.4); } .toast.error .tdot { background: var(--fire); }
+.toast.info .tdot { background: var(--blue); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }
+
+/* flipper toggle: danger look while running */
+.btn.primary.running { background: linear-gradient(180deg, #ff6b6b, var(--fire)); border-color: var(--fire); color: #fff; }
+
 /* ── events ──────────────────────────────────────────────────────────────── */
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .filters { display: flex; gap: 8px; align-items: center; }
